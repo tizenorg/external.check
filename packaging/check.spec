@@ -1,4 +1,3 @@
-
 Name:       check
 Summary:    A unit test framework for C
 Version:    0.9.8
@@ -7,11 +6,9 @@ Group:      Development/Tools
 License:    LGPLv2+
 URL:        http://check.sourceforge.net/
 Source0:    http://download.sourceforge.net/check/%{name}-%{version}.tar.gz
-Source100:  check.yaml
 Requires(post):  /sbin/ldconfig
 Requires(postun):  /sbin/ldconfig
-
-BuildRoot:  %{_tmppath}/%{name}-%{version}-build
+BuildRequires: autoconf, automake, libtool, texinfo
 
 %description
 Check is a unit test framework for C. It features a simple interface for 
@@ -37,7 +34,8 @@ Libraries and headers for developing programs with check
 
 %build
 
-%configure --disable-static
+./autogen.sh
+%configure
 # Call make instruction with smp support
 make %{?jobs:-j%jobs}
 
