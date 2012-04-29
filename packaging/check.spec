@@ -1,6 +1,6 @@
 Name:       check
 Summary:    A unit test framework for C
-Version:    0.9.8
+Version: 0.9.4
 Release:    1
 Group:      Development/Tools
 License:    LGPLv2+
@@ -8,7 +8,8 @@ URL:        http://check.sourceforge.net/
 Source0:    http://download.sourceforge.net/check/%{name}-%{version}.tar.gz
 Requires(post):  /sbin/ldconfig
 Requires(postun):  /sbin/ldconfig
-BuildRequires: autoconf, automake, libtool, texinfo
+BuildRequires: texinfo
+
 
 %description
 Check is a unit test framework for C. It features a simple interface for 
@@ -35,8 +36,8 @@ Libraries and headers for developing programs with check
 %build
 
 ./autogen.sh
-%configure
-# Call make instruction with smp support
+%configure --enable-plain-docdir
+
 make %{?jobs:-j%jobs}
 
 %install
