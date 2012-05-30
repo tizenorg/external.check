@@ -6,6 +6,7 @@ Group:      Development/Tools
 License:    LGPLv2+
 URL:        http://check.sourceforge.net/
 Source0:    http://download.sourceforge.net/check/%{name}-%{version}.tar.gz
+Source1001: packaging/check.manifest 
 Requires(post):  /sbin/ldconfig
 Requires(postun):  /sbin/ldconfig
 BuildRequires: texinfo
@@ -34,6 +35,7 @@ Libraries and headers for developing programs with check
 %setup -q -n %{name}-%{version}
 
 %build
+cp %{SOURCE1001} .
 
 ./autogen.sh
 %configure --enable-plain-docdir
@@ -58,6 +60,7 @@ rm -rf %{buildroot}
 
 
 %files
+%manifest check.manifest
 %defattr(-,root,root,-)
 %doc COPYING.LESSER README
 %{_libdir}/libcheck.so.*
@@ -66,6 +69,7 @@ rm -rf %{buildroot}
 
 
 %files devel
+%manifest check.manifest
 %defattr(-,root,root,-)
 %{_includedir}/check.h
 %{_libdir}/libcheck.so
