@@ -11,9 +11,9 @@
 @copying
 This manual is for Check
 (version @value{VERSION}, @value{UPDATED}),
-a unit test framework for C programs.
+a unit testing framework for C.
 
-Copyright @copyright{} 2001--2006 Arien Malec, Chris Pickett, Fredrik
+Copyright @copyright{} 2001--2009 Arien Malec, Chris Pickett, Fredrik
 Hugosson, and Robert Lemmen.
 
 @quotation
@@ -33,12 +33,13 @@ entitled ``@acronym{GNU} Free Documentation License.''
 
 @titlepage
 @title Check
-@subtitle A Unit Test Framework for C
+@subtitle A Unit Testing Framework for C
 @subtitle for version @value{VERSION}, @value{UPDATED}
 @author Arien Malec 
 @author Chris Pickett
 @author Fredrik Hugosson
 @author Robert Lemmen
+@author Robert Collins
 
 @c The following two commands start the copyright page.
 @page
@@ -56,7 +57,7 @@ entitled ``@acronym{GNU} Free Documentation License.''
 @insertcopying
 
 Please send corrections to this manual to
-@email{check-devel@@lists.sourceforge.net}.  We'd prefer it if you can
+@email{check-devel AT lists.sourceforge.net}.  We'd prefer it if you can
 send a unified diff (@command{diff -u}) against the
 @file{doc/check.texi} file that ships with Check, but something is
 still better than nothing if you can't manage that.
@@ -93,11 +94,12 @@ Advanced Features
 * No Fork Mode::                
 * Test Fixtures::               
 * Multiple Suites in one SRunner::  
-* Testing Signal Handling::     
+* Testing Signal Handling and Exit Values::     
 * Looping Tests::               
 * Test Timeouts::               
 * Determining Test Coverage::   
 * Test Logging::                
+* Subunit Support::
 
 Test Fixtures
 
@@ -211,6 +213,18 @@ for C:
 
 @table @asis
 
+@item AceUnit
+AceUnit (Advanced C and Embedded Unit) bills itself as a comfortable C
+code unit test framework.  It tries to mimick JUnit 4.x and includes
+reflection-like capabilities.  AceUnit can be used in resource
+constraint environments, e.g. embedded software development, and
+importantly it runs fine in environments where you cannot include a
+single standard header file and cannot invoke a single standard C
+function from the ANSI / ISO C libraries.  It also has a Windows port.
+It does not use forks to trap signals, although the authors have
+expressed interest in adding such a feature.  See the
+@uref{http://aceunit.sourceforge.net/, AceUnit homepage}.
+
 @item GNU Autounit
 Much along the same lines as Check, including forking to run unit
 tests in a separate address space (in fact, the original author of
@@ -234,14 +248,20 @@ In early development.  See the @uref{http://cunit.sourceforge.net,
 CUnit homepage}.
 
 @item CppUnit
-The premier unit test framework for C++; you can also use it to test C
+The premier unit testing framework for C++; you can also use it to test C
 code.  It is stable, actively developed, and has a GUI interface.  The
 primary reasons not to use CppUnit for C are first that it is quite
 big, and second you have to write your tests in C++, which means you
 need a C++ compiler.  If these don't sound like concerns, it is
 definitely worth considering, along with other C++ unit testing
 frameworks.  See the
-@uref{http://cppunit.sourceforge.net/cppunit-wikie, CppUnit homepage}.
+@uref{http://cppunit.sourceforge.net/cppunit-wiki, CppUnit homepage}.
+
+@item embUnit
+embUnit (Embedded Unit) is another unit test framework for embedded
+systems.  This one appears to be superseded by AceUnit.
+@uref{https://sourceforge.net/projects/embunit/, Embedded Unit
+homepage}.
 
 @item MinUnit
 A minimal set of macros and that's it!  The point is to
@@ -256,9 +276,9 @@ early development.  See the
 Mr. Ando homepage}.
 @end table
 
-This list was last updated in March 2006.  If you know of other C unit
+This list was last updated in March 2008.  If you know of other C unit
 test frameworks, please send an email plus description to
-@email{check-devel@@lists.sourceforge.net} and we will add the entry
+@email{check-devel AT lists.sourceforge.net} and we will add the entry
 to this list.
 
 It is the authors' considered opinion that forking or otherwise
@@ -267,7 +287,7 @@ it probably wouldn't be hard to add that to frameworks without that
 feature).  Try 'em all out: adapt this tutorial to use all of the
 frameworks above, and use whichever you like.  Contribute, spread the
 word, and make one a standard.  Languages such as Java and Python are
-fortunate to have standard unit test frameworks; it would be desirable
+fortunate to have standard unit testing frameworks; it would be desirable
 that C have one as well.
 
 @node Tutorial, Advanced Features, Unit Testing in C, Top
@@ -334,7 +354,7 @@ Note that this is not the place to explain how Autotools works.  If
 you need help understanding what's going on beyond the explanations
 here, the best place to start is probably Alexandre Duret-Lutz's
 excellent
-@uref{http://www-src.lip6.fr/homepages/Alexandre.Duret-Lutz/autotools.html,
+@uref{http://www.lrde.epita.fr/~adl/autotools.html,
 Autotools tutorial}.
 
 The examples in this section are part of the Check distribution; you
@@ -447,7 +467,7 @@ have problems, make sure to see @ref{AM_PATH_CHECK}.
 This was tested on the i386 ``testing'' distribution of Debian
 GNU/Linux (etch) in March 2006, using Autoconf 2.59, Automake 1.9.6,
 and Libtool 1.5.22.  Please report any problems to
-@email{check-devel@@lists.sourceforge.net}.
+@email{check-devel AT lists.sourceforge.net}.
 
 @node Test a Little, Creating a Suite, Setting Up the Money Build, Tutorial
 @section Test a Little, Code a Little
@@ -471,13 +491,12 @@ Here are the changes to @file{check_money.c} for our first unit test:
 @findex fail_unless()
 A unit test should just chug along and complete.  If it exits early,
 or is signaled, it will fail with a generic error message.  (Note: it
-is conceivable that you expect an early exit, or a signal.  There is
-currently nothing in Check to specifically assert that we should
-expect either --- if that is valuable, it may be worth while adding to
-Check.)  If we want to get some information about what failed, we need
-to use the @code{fail_unless()} function.  The function (actually a
-macro) takes a first Boolean argument, and an error message to send if
-the condition is not true.
+is conceivable that you expect an early exit, or a signal and there is
+functionality in Check to specifically assert that we should expect a
+signal or an early exit.)  If we want to get some information
+about what failed, we need to use the @code{fail_unless()} function.  The
+function (actually a macro) takes a first Boolean argument, and an error
+message to send if the condition is not true.
 
 @findex fail()
 If the Boolean argument is too complicated to elegantly express within
@@ -672,6 +691,11 @@ Gets the print mode from the environment variable @code{CK_VERBOSITY},
 which can have the values "silent", "minimal", "normal", "verbose". If
 the variable is not found or the value is not recognized, the print
 mode is set to @code{CK_NORMAL}.
+
+@vindex CK_SUBUNIT
+@item CK_SUBUNIT
+Prints running progress through the @uref{https://launchpad.net/subunit/,
+subunit} test runner protocol. See 'subunit support' under the Advanced Features section for more information.
 @end table
 
 With the @code{CK_NORMAL} flag specified in our @code{main()}, let's
@@ -761,11 +785,12 @@ easier for the developer to write, run, and analyse tests.
 * No Fork Mode::                
 * Test Fixtures::               
 * Multiple Suites in one SRunner::  
-* Testing Signal Handling::     
+* Testing Signal Handling and Exit Values::     
 * Looping Tests::               
 * Test Timeouts::               
 * Determining Test Coverage::   
 * Test Logging::                
+* Subunit Support::
 @end menu
 
 @node Running Multiple Cases, No Fork Mode, Advanced Features, Advanced Features
@@ -828,9 +853,8 @@ explicit call to @code{srunner_set_fork_status()} overrides the
 We may want multiple tests that all use the same Money.  In such
 cases, rather than setting up and tearing down objects for each unit
 test, it may be convenient to add some setup that is constant across
-all the tests in a test case.  In the Extreme Programming (XP)
-approach to unit tests, each such setup is called a @dfn{test
-fixture}.
+all the tests in a test case.  Each such setup/teardown pair is called
+a @dfn{test fixture} in test-driven development jargon.
 
 A fixture is created by defining a setup and/or a teardown function,
 and associating it with a test case.  There are two kinds of test
@@ -841,10 +865,12 @@ as follows:
 @item Checked fixtures
 are run inside the address space created by the fork to create the
 unit test.  Before each unit test in a test case, the @code{setup()}
-function is run, if defined. After each unit test, the @code{teardown()}
-function is run, if defined.  Since they run inside the forked address
-space, if checked fixtures signal or otherwise fail, they will be
-caught and reported by the @code{SRunner}.
+function is run, if defined. After each unit test, the
+@code{teardown()} function is run, if defined.  Since they run inside
+the forked address space, if checked fixtures signal or otherwise
+fail, they will be caught and reported by the @code{SRunner}.  A
+checked @code{teardown()} fixture will run even if the unit test
+fails.
 
 @item Unchecked fixtures
 are run in the same address space as the test program. Therefore they
@@ -853,6 +879,28 @@ may not signal or exit, but may use the fail functions. The unchecked
 started. The unchecked @code{teardown()}, if defined, is run after the
 test case is done.
 @end table
+
+So for a test case that contains @code{check_one()} and
+@code{check_two()} unit tests,
+@code{checked_setup()}/@code{checked_teardown()} checked fixtures, and
+@code{unchecked_setup()}/@code{unchecked_teardown()} unchecked
+fixtures, the control flow would be:
+@example
+@verbatim
+unchecked_setup();
+fork();
+checked_setup();
+check_one();
+checked_teardown();
+wait();
+fork();
+checked_setup();
+check_two();
+checked_teardown();
+wait();
+unchecked_teardown();
+@end verbatim
+@end example
 
 @menu
 * Test Fixture Examples::       
@@ -871,8 +919,8 @@ globals.  The functions both take @code{void} and return @code{void}.
 In our example, we'll make @code{five_dollars} be a global created and
 freed by @code{setup()} and @code{teardown()} respectively.
 
-@findex tcase_add_checked_fixture()     
 @item
+@findex tcase_add_checked_fixture()     
 Add the @code{setup()} and @code{teardown()} functions to the test
 case with @code{tcase_add_checked_fixture()}.  In our example, this
 belongs in the suite setup function @code{money_suite}.
@@ -895,41 +943,38 @@ as follows:
 @subsection Checked vs Unchecked Fixtures
 
 Checked fixtures run once for each unit test in a test case, and so
-they should not be used for expensive setup.  On the other hand, since
-unchecked fixtures may take down the entire test program, they should
-only be used if they are known to be safe.  Recall that unchecked
-fixtures run once per test case, as opposed to once per unit test.
+they should not be used for expensive setup.  However, if a checked
+fixture fails and @code{CK_FORK} mode is being used, it will not bring
+down the entire framework.
 
-Additionally, checked and unchecked fixtures may behave differently in
-@code{CK_NOFORK} mode:
+On the other hand, unchecked fixtures run once for an entire test
+case, as opposed to once per unit test, and so can be used for
+expensive setup.  However, since they may take down the entire test
+program, they should only be used if they are known to be safe.
 
-@itemize
-@item
-Normally, in @code{CK_FORK} mode, unit tests may abuse the objects
-created in an unchecked fixture with impunity, without affecting other
-unit tests in the same test case, because the fork creates a separate
-address space.
-
-@item
+Additionally, the isolation of objects created by unchecked fixtures
+is not guaranteed by @code{CK_NOFORK} mode.  Normally, in
+@code{CK_FORK} mode, unit tests may abuse the objects created in an
+unchecked fixture with impunity, without affecting other unit tests in
+the same test case, because the fork creates a separate address space.
 However, in @code{CK_NOFORK} mode, all tests live in the same address
 space, and side effects in one test will affect the unchecked fixture
 for the other tests.
-@end itemize
 
 A checked fixture will generally not be affected by unit test side
 effects, since the @code{setup()} is run before each unit test.  There
 is an exception for side effects to the total environment in which the
 test program lives: for example, if the @code{setup()} function
 initializes a file that a unit test then changes, the combination of
-the @code{teardown()} function and @code{setup} fuction must be able
+the @code{teardown()} function and @code{setup()} fuction must be able
 to restore the environment for the next unit test.
 
-If the @code{setup} function in a fixture fails, in either checked or
-unchecked fixtures, the unit tests for the test case, and the teardown
-function for the fixture will not be run.  A fixture error will be
-created and reported to the @code{SRunner}.
+If the @code{setup()} function in a fixture fails, in either checked
+or unchecked fixtures, the unit tests for the test case, and the
+@code{teardown()} function for the fixture will not be run.  A fixture
+error will be created and reported to the @code{SRunner}.
 
-@node Multiple Suites in one SRunner, Testing Signal Handling, Test Fixtures, Advanced Features
+@node Multiple Suites in one SRunner, Testing Signal Handling and Exit Values, Test Fixtures, Advanced Features
 @section Multiple Suites in one SRunner
 
 In a large program, it will be convenient to create multiple suites,
@@ -973,8 +1018,8 @@ srunner_add_suite (sr, make_pack_suite ());
 @end verbatim
 @end example
 
-@node Testing Signal Handling, Looping Tests, Multiple Suites in one SRunner, Advanced Features
-@section Testing Signal Handling
+@node Testing Signal Handling and Exit Values, Looping Tests, Multiple Suites in one SRunner, Advanced Features
+@section Testing Signal Handling and Exit Values
 
 @findex tcase_add_test_raise_signal()
 
@@ -987,7 +1032,18 @@ is received this is logged as an error.
 
 The signal handling functionality only works in CK_FORK mode.
 
-@node Looping Tests, Test Timeouts, Testing Signal Handling, Advanced Features
+@findex tcase_add_exit_test()
+
+To enable testing of expected exits, there is a function
+@code{tcase_add_exit_test()} which is used instead of @code{tcase_add_test()}.
+This function takes an additional expected exit value argument,
+specifying a value that the test is expected to exit with.  If the test
+exits with any other value this is logged as a failure.  If the test exits
+early this is logged as an error.
+
+The exit handling functionality only works in CK_FORK mode.
+
+@node Looping Tests, Test Timeouts, Testing Signal Handling and Exit Values, Advanced Features
 @section Looping Tests
 
 Looping tests are tests that are called with a new context for each
@@ -1045,16 +1101,20 @@ forking.  This means that only the first error will be shown.
 
 @findex tcase_set_timeout()
 @vindex CK_DEFAULT_TIMEOUT
+@vindex CK_TIMEOUT_MULTIPLIER
 To be certain that a test won't hang indefinitely, all tests are run
-with a timeout, the default being 3 seconds.  If the test is not
+with a timeout, the default being 4 seconds.  If the test is not
 finished within that time, it is killed and logged as an error.
 
 The timeout for a specific test case, which may contain multiple unit
 tests, can be changed with the @code{tcase_set_timeout()} function.
 The default timeout used for all test cases can be changed with the
 environment variable @code{CK_DEFAULT_TIMEOUT}, but this will not
-override an explicitly set timeout.  All timeout arguments are in
-seconds and a timeout of 0 seconds turns off the timeout
+override an explicitly set timeout.  Another way to change the timeout
+length is to use the @code{CK_TIMEOUT_MULTIPLIER} environment variable,
+which multiplies all timeouts, including those set with
+@code{tcase_set_timeout()}, with the supplied integer value. All timeout
+arguments are in seconds and a timeout of 0 seconds turns off the timeout
 functionality.
 
 Test timeouts are only available in CK_FORK mode.
@@ -1118,7 +1178,7 @@ As you can see this is an annotated source file with three columns:
 usage information, line numbers, and the original source.  The usage
 information in the first column can either be '-', which means that
 this line does not contain code that could be executed; '#####', which
-means this line was never executed altough it does contain
+means this line was never executed although it does contain
 code---these are the lines that are probably most interesting for you;
 or a number, which indicates how often that line was executed.
 
@@ -1127,7 +1187,7 @@ how determining test coverage generally works, and how it can help
 you.  For more information or help with other compilers, please refer
 to the relevant manuals.
 
-@node Test Logging,  , Determining Test Coverage, Advanced Features
+@node Test Logging, Subunit Support, Determining Test Coverage, Advanced Features
 @section Test Logging
 
 @findex srunner_set_log()
@@ -1229,6 +1289,50 @@ of the same log output as before but in XML:
 </testsuites>
 @end verbatim
 @end example
+
+@node Subunit Support, , Test Logging, Advanced Features
+@section Subunit Support
+
+Check supports running test suites with subunit output. This can be useful to
+combine test results from multiple languages, or to perform programmatic
+analysis on the results of multiple check test suites or otherise handle test
+results in a programmatic manner. Using subunit with check is very straight
+forward. There are two steps:
+1) In your check test suite driver pass 'CK_SUBUNIT' as the output mode
+for your srunner.
+@example
+@verbatim
+SRunner *sr;
+sr = srunner_create (make_s1_suite ());
+srunner_add_suite (sr, make_s2_suite ());
+srunner_run_all (sr, CK_SUBUNIT);
+@end verbatim
+@end example
+2) Setup your main language test runner to run your check based test
+executable. For instance using python:
+@example
+@verbatim
+
+import subunit
+
+class ShellTests(subunit.ExecTestCase):
+    """Run some tests from the C codebase."""
+
+    def test_group_one(self):
+        """./foo/check_driver"""
+
+    def test_group_two(self):
+        """./foo/other_driver"""
+@end verbatim
+@end example
+
+In this example, running the test suite ShellTests in python (using any test
+runner - unittest.py, tribunal, trial, nose or others) will run
+./foo/check_driver and ./foo/other_driver and report on their result.
+
+Subunit is hosted on launchpad - the @uref{https://launchpad.net/subunit/,
+subunit} project there contains bug tracker, future plans, and source code
+control details.
 
 @node Conclusion and References, AM_PATH_CHECK, Advanced Features, Top
 @chapter Conclusion and References

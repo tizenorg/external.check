@@ -1,0 +1,17 @@
+* Sat Jun 30 2012 Anas Nashif <anas.nashif@intel.com> 7348b7e
+- Update to 0.9.8
+
+* Wed May 30 2012 Ryan Ware <ryan.r.ware@intel.com> 0b930f1
+- Add default Smack manifest for check.spec
+
+* Sun Apr 29 2012 Kim Kibum <kb0929.kim@samsung.com> 7ece29e
+- upload tizen1.0 source
+
+* Wed Mar 14 2012 Yan Yin <yan.yin@intel.com> 923aa66
+- update for beta universally
+
+* Fri Jan 06 2012 Kibum Kim <kb0929.kim@samsung.com> 90930ee
+- Git init
+[ Eunkyoung Kim ]
+- Initial empty repository
+

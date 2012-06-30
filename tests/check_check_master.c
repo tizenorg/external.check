@@ -1,82 +1,117 @@
+#include "../lib/libcompat.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <check.h>
+#include <assert.h>
 #include "check_check.h"
 
 
 TestResult **tr_fail_array;
 TestResult **tr_all_array;
 
-
 #define MAXSTR 300
 
 typedef struct {
   const char *tcname;
-  int line_nos;
   int failure_type;
   const char *msg;
 } master_test_t;
 
-static master_test_t master_tests[] = {
-  { "Simple Tests",  18, CK_FAILURE, "Failure expected" },
-  { "Simple Tests",  24, CK_ERROR,   "Early exit with return value 1" },
-  { "Simple Tests",  -1, CK_PASS,    "Passed" },
-  { "Simple Tests",  -1, CK_FAILURE, "This test should fail" },
-  { "Simple Tests",  -1, CK_PASS,    "Passed" },
-  { "Simple Tests",  -1, CK_FAILURE, "This test should fail" },
-  { "Simple Tests",  -1, CK_FAILURE, "Assertion '2 == 3' failed" },
-  { "Simple Tests",  -1, CK_FAILURE, "Assertion '4 == 5' failed" },
-  { "Simple Tests",  -1, CK_FAILURE, "Failure '2 != 3' occured" },
-  { "Simple Tests",  -1, CK_FAILURE, "Failure '4 != 5' occured" },
-  { "Simple Tests",  -1, CK_FAILURE, "3 != 4" },
-  { "Simple Tests",  -1, CK_FAILURE, "5 != 6" },
-  { "Simple Tests",  -1, CK_FAILURE, "7 == 7" },
-  { "Simple Tests",  -1, CK_FAILURE, "Failed" },
+#define SIG_STR_LEN 128
+static char signal_11_str[SIG_STR_LEN];
+static char signal_11_8_str[SIG_STR_LEN];
+static char signal_8_str[SIG_STR_LEN];
 
-  { "Signal Tests",  -1, CK_ERROR,   "Received signal 11 (Segmentation fault)" },
-  { "Signal Tests",  -1, CK_PASS,    "Passed" },
-  { "Signal Tests", 111, CK_ERROR,   "Received signal 11 (Segmentation fault), expected 8 (Floating point exception)" },
-  { "Signal Tests",  -1, CK_FAILURE, "Early exit with return value 0" },
-  { "Signal Tests",  -1, CK_FAILURE, "Early exit with return value 1" },
-  { "Signal Tests",  -1, CK_ERROR,   "Received signal 8 (Floating point exception)" },
-  { "Signal Tests",  -1, CK_ERROR,   "Received signal 8 (Floating point exception)" },
+/* FIXME: all these line numbers are kind of hard to maintain */
+static master_test_t master_tests[] = {
+  { "Simple Tests", CK_FAILURE, "Failure expected" },
+  { "Simple Tests", CK_ERROR,   "Early exit with return value 1" },
+  { "Simple Tests", CK_PASS,    "Passed" },
+  { "Simple Tests", CK_FAILURE, "This test should fail" },
+  { "Simple Tests", CK_PASS,    "Passed" },
+  { "Simple Tests", CK_FAILURE, "This test should fail" },
+  { "Simple Tests", CK_FAILURE, "Assertion '2 == 3' failed" },
+  { "Simple Tests", CK_FAILURE, "Assertion '4 == 5' failed" },
+  { "Simple Tests", CK_FAILURE, "Failure '2 != 3' occured" },
+  { "Simple Tests", CK_FAILURE, "Failure '4 != 5' occured" },
+  { "Simple Tests", CK_FAILURE, "3 != 4" },
+  { "Simple Tests", CK_FAILURE, "5 != 6" },
+  { "Simple Tests", CK_FAILURE, "7 == 7" },
+  { "Simple Tests", CK_FAILURE, "Failed" },
+  { "Simple Tests", CK_FAILURE, "Failed" },
+  { "Simple Tests", CK_FAILURE, "Failure expected" },
+  { "Simple Tests", CK_FAILURE, "Failed" },
+  { "Simple Tests", CK_FAILURE, "Assertion 'x == y' failed" },
+  { "Simple Tests", CK_FAILURE, "Assertion '0' failed" },
+  { "Simple Tests", CK_FAILURE, "Assertion 'x==y' failed: x==3, y==4" },
+  { "Simple Tests", CK_FAILURE, "Assertion 'x!=y' failed: x==3, y==3" },
+  { "Simple Tests", CK_FAILURE, "Assertion '\"test1\"==s' failed: \"test1\"==\"test1\", s==\"test2\"" },
+  { "Simple Tests", CK_FAILURE, "Assertion 't!=s' failed: t==\"test2\", s==\"test2\"" },
+
+  { "Signal Tests", CK_ERROR,   signal_11_str },
+  { "Signal Tests", CK_PASS,    "Passed" },
+  { "Signal Tests", CK_ERROR,   signal_11_8_str },
+  { "Signal Tests", CK_FAILURE, "Early exit with return value 0" },
+  { "Signal Tests", CK_FAILURE, "Early exit with return value 1" },
+  { "Signal Tests", CK_ERROR,   signal_8_str },
+  { "Signal Tests", CK_ERROR,   signal_8_str },
 
 #if TIMEOUT_TESTS_ENABLED
-  { "Environment Timeout Tests", 139, CK_ERROR,  "Test timeout expired" },
-  { "Environment Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "Environment Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "Environment Timeout Tests", 158, CK_ERROR,  "Test timeout expired" },
-  { "Timeout Tests", 139, CK_ERROR,  "Test timeout expired" },
-  { "Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "Timeout Tests", 152, CK_ERROR,  "Test timeout expired" },
-  { "Timeout Tests", 158, CK_ERROR,  "Test timeout expired" },
-  { "User Timeout Tests", 139, CK_ERROR,  "Test timeout expired" },
-  { "User Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "User Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "User Timeout Tests", 158, CK_ERROR,  "Test timeout expired" },
+#if HAVE_WORKING_SETENV
+  { "Environment Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "Environment Timeout Tests", CK_PASS,   "Passed" },
+  { "Environment Timeout Tests", CK_PASS,   "Passed" },
+  { "Environment Timeout Tests", CK_ERROR,  "Test timeout expired" },
+#endif
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Tests", CK_PASS,   "Passed" },
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "User Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "User Timeout Tests", CK_PASS,   "Passed" },
+  { "User Timeout Tests", CK_PASS,   "Passed" },
+  { "User Timeout Tests", CK_ERROR,  "Test timeout expired" },
   /* Timeout tests are run twice , see check_check_sub.c:make_sub_suite() */
-  { "Timeout Tests", 139, CK_ERROR,  "Test timeout expired" },
-  { "Timeout Tests",  -1, CK_PASS,   "Passed" },
-  { "Timeout Tests", 152, CK_ERROR,  "Test timeout expired" },
-  { "Timeout Tests", 158, CK_ERROR,  "Test timeout expired" },
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Tests", CK_PASS,   "Passed" },
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Tests", CK_ERROR,  "Test timeout expired" },
+#if HAVE_WORKING_SETENV
+  { "Environment Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+  { "Environment Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "Environment Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "Environment Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+  { "Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+  { "User Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+  { "User Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "User Timeout Scaling Tests", CK_PASS,   "Passed" },
+  { "User Timeout Scaling Tests", CK_ERROR,  "Test timeout expired" },
+#endif
 #endif
 
-  { "Limit Tests",   -1, CK_ERROR,   "Early exit with return value 1" },
-  { "Limit Tests",   -1, CK_FAILURE, "Completed properly" },
-  { "Limit Tests",   -1, CK_FAILURE, "Completed properly" },
+  { "Limit Tests", CK_ERROR,   "Early exit with return value 1" },
+  { "Limit Tests", CK_FAILURE, "Completed properly" },
+  { "Limit Tests", CK_FAILURE, "Completed properly" },
 
-  { "Msg and fork Tests",  -1, CK_PASS,       "Passed" },
-  { "Msg and fork Tests",  -1, CK_FAILURE,    "Expected fail" },
-  { "Msg and fork Tests",  -1, CK_PASS,       "Passed" },
-  { "Msg and fork Tests",  -1, CK_FAILURE,    "Expected fail" },
-  { "Msg and fork Tests",  -1, CK_PASS,       "Passed" },
-  { "Msg and fork Tests",  -1, CK_FAILURE,    "Expected fail" },
+  { "Msg and fork Tests", CK_PASS,       "Passed" },
+  { "Msg and fork Tests", CK_FAILURE,    "Expected fail" },
+  { "Msg and fork Tests", CK_PASS,       "Passed" },
+  { "Msg and fork Tests", CK_FAILURE,    "Expected fail" },
+  { "Msg and fork Tests", CK_PASS,       "Passed" },
+  { "Msg and fork Tests", CK_FAILURE,    "Expected fail" },
 
-  { "Core",          -1, CK_FAILURE, "We failed" }
+  { "Core", CK_PASS,    "Passed" },
+  { "Core", CK_FAILURE, "We failed" }
 };
 
 static int nr_of_master_tests = sizeof master_tests /sizeof master_tests[0];
+
+int master_tests_lineno[sizeof master_tests /sizeof master_tests[0]];
 
 START_TEST(test_check_nfailures)
 {
@@ -115,9 +150,9 @@ START_TEST(test_check_failure_msgs)
       continue;
     }
 
-    fail_if(i - passed > sub_nfailed);
+    fail_if(i - passed > sub_nfailed, NULL);
     tr = tr_fail_array[i - passed];
-    fail_unless(tr != NULL);
+    fail_unless(tr != NULL, NULL);
     got_msg = tr_msg(tr);
     expected_msg = master_tests[i].msg;
     if (strcmp(got_msg, expected_msg) != 0) {      
@@ -144,10 +179,10 @@ START_TEST(test_check_failure_lnos)
       continue;
     }
 
-    fail_if(i - passed > sub_nfailed);
+    fail_if(i - passed > sub_nfailed, NULL);
     tr = tr_fail_array[i - passed];
-    fail_unless(tr != NULL);
-    line_no = master_tests[i].line_nos;
+    fail_unless(tr != NULL, NULL);
+    line_no = master_tests_lineno[i];
     if (line_no > 0 && tr_lno(tr) != line_no) {
       char *emsg = malloc(MAXSTR);
       snprintf(emsg, MAXSTR, "For test %d: Expected lno %d, got %d",
@@ -171,9 +206,9 @@ START_TEST(test_check_failure_ftypes)
       continue;
     }
 
-    fail_if(i - passed > sub_nfailed);
+    fail_if(i - passed > sub_nfailed, NULL);
     tr = tr_fail_array[i - passed];
-    fail_unless(tr != NULL);
+    fail_unless(tr != NULL, NULL);
     fail_unless(master_tests[i].failure_type == tr_rtype(tr),
                 "Failure type wrong for test %d", i);
   }
@@ -185,7 +220,7 @@ START_TEST(test_check_failure_lfiles)
   int i;
   for (i = 0; i < sub_nfailed; i++) {
     TestResult *tr = tr_fail_array[i];
-    fail_unless(tr != NULL);
+    fail_unless(tr != NULL, NULL);
     fail_unless(tr_lfile(tr) != NULL, "Bad file name for test %d", i);
     fail_unless(strstr(tr_lfile(tr), "check_check_sub.c") != 0,
                 "Bad file name for test %d", i);
@@ -195,37 +230,29 @@ END_TEST
 
 START_TEST(test_check_tcnames)
 {
-  int i;
-  
-  for (i = 0; i < sub_ntests; i++) {
-    const char *tcname;   
-    tcname = tr_tcname(tr_all_array[_i]);
-    if (strcmp(tcname, master_tests[_i].tcname) != 0) {
-      char *emsg = malloc (MAXSTR);
-      snprintf(emsg, MAXSTR,"For test %d: Expected %s, got %s",
-               i, master_tests[_i].tcname, tcname);
-      fail(emsg);
-      free(emsg);
-    }
-  }
+  const char *tcname;   
+  tcname = tr_tcname(tr_all_array[_i]);
+  if (strcmp(tcname, master_tests[_i].tcname) != 0) {
+    char *emsg = malloc (MAXSTR);
+    snprintf(emsg, MAXSTR,"Expected %s, got %s",
+             master_tests[_i].tcname, tcname);
+    fail(emsg);
+    free(emsg);
+  } 
 }
 END_TEST
 
 
 START_TEST(test_check_all_msgs)
 {
-  int i;
-
-  for (i = 0; i < sub_ntests; i++) {
-    const char *msg;   
-    msg = tr_msg(tr_all_array[_i]);
-    if (strcmp(msg, master_tests[_i].msg) != 0) {
-      char *emsg = malloc (MAXSTR);
-      snprintf(emsg, MAXSTR,"For test %d: Expected %s, got %s",
-               i, master_tests[_i].msg, msg);
-      fail(emsg);
-      free(emsg);
-    }
+  const char *msg;
+  msg = tr_msg(tr_all_array[_i]);
+  if (strcmp(msg, master_tests[_i].msg) != 0) {
+    char *emsg = malloc (MAXSTR);
+    snprintf(emsg, MAXSTR,"Expected %s, got %s",
+             master_tests[_i].msg, msg);
+    fail(emsg);
+    free(emsg);
   }
 }
 END_TEST  
@@ -281,8 +308,8 @@ Suite *make_master_suite (void)
   tcase_add_test (tc_core, test_check_failure_ftypes);
   tcase_add_test (tc_core, test_check_failure_lnos);
   tcase_add_test (tc_core, test_check_failure_lfiles);
-  tcase_add_test (tc_core, test_check_tcnames);
-  tcase_add_test (tc_core, test_check_all_msgs);
+  tcase_add_loop_test (tc_core, test_check_tcnames, 0, sub_ntests);
+  tcase_add_loop_test (tc_core, test_check_all_msgs, 0, sub_ntests);
   tcase_add_loop_test (tc_core, test_check_all_ftypes, 0, nr_of_master_tests);
   tcase_add_unchecked_fixture(tc_fixture, test_fixture_setup,
 			      test_fixture_teardown);
@@ -299,10 +326,30 @@ Suite *make_master_suite (void)
   return s;
 }
 
+static void init_signal_strings(void)
+{
+  /* strsignal may overwrite the string returned by the previous call */
+  char *s8 = strdup(strsignal(8));
+  char *s11 = strdup(strsignal(11));
+  int n;
+  n = snprintf(signal_11_str, SIG_STR_LEN, "Received signal 11 (%s)", s11);
+  assert(n < SIG_STR_LEN);
+  n = snprintf(signal_11_8_str, SIG_STR_LEN, "Received signal 11 (%s), expected 8 (%s)", s11, s8);
+  assert(n < SIG_STR_LEN);
+  n = snprintf(signal_8_str, SIG_STR_LEN, "Received signal 8 (%s)", s8);
+  assert(n < SIG_STR_LEN);
+  free(s8);
+  free(s11);
+}
+
 void setup (void)
 {
   Suite *s = make_sub_suite();
   SRunner *sr = srunner_create(s);
+
+  init_master_tests_lineno();
+  init_signal_strings();
+
   srunner_add_suite(sr, make_sub2_suite());
   srunner_run_all(sr, CK_VERBOSE);
   tr_fail_array = srunner_failures(sr);
@@ -313,5 +360,4 @@ void setup (void)
 
 void cleanup (void)
 {
-  return;
 }

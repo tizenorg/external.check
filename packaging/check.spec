@@ -1,57 +1,47 @@
-Name:       check
-Summary:    A unit test framework for C
-Version: 0.9.4
-Release:    1
-Group:      Development/Tools
-License:    LGPLv2+
-URL:        http://check.sourceforge.net/
-Source0:    http://download.sourceforge.net/check/%{name}-%{version}.tar.gz
-Source1001: packaging/check.manifest 
+Name:           check
+Version:        0.9.8
+Release:        1
+License:        LGPL-2.0+
+Summary:        A unit test framework for C
+Url:            http://check.sourceforge.net/
+Group:          Development/Tools
+Source0:        http://download.sourceforge.net/check/%{name}-%{version}.tar.gz
+Source1001:     check.manifest
+BuildRequires:  texinfo
 Requires(post):  /sbin/ldconfig
 Requires(postun):  /sbin/ldconfig
-BuildRequires: texinfo
-
 
 %description
-Check is a unit test framework for C. It features a simple interface for 
-defining unit tests, putting little in the way of the developer. Tests 
-are run in a separate address space, so Check can catch both assertion 
-failures and code errors that cause segmentation faults or other signals. 
+Check is a unit test framework for C. It features a simple interface for
+defining unit tests, putting little in the way of the developer. Tests
+are run in a separate address space, so Check can catch both assertion
+failures and code errors that cause segmentation faults or other signals.
 The output from unit tests can be used within source code editors and IDEs.
 
-
-
 %package devel
-Summary:    Libraries and headers for developing programs with check
-Group:      Development/Libraries
-Requires:   %{name} = %{version}-%{release}
-Requires:   pkgconfig
+Summary:        Libraries and headers for developing programs with check
+Group:          Development/Libraries
+Requires:       %{name} = %{version}
+Requires:       pkgconfig
 
 %description devel
 Libraries and headers for developing programs with check
 
-
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q
 
 %build
 cp %{SOURCE1001} .
 
-./autogen.sh
-%configure --enable-plain-docdir
+%configure 
 
-make %{?jobs:-j%jobs}
+make %{?_smp_mflags}
 
 %install
-rm -rf %{buildroot}
 %make_install
 
-rm -rf $RPM_BUILD_ROOT%{_infodir}/dir
 
-%clean
-rm -rf %{buildroot}
-
-
+%remove_docs
 
 %post -p /sbin/ldconfig
 
@@ -61,16 +51,12 @@ rm -rf %{buildroot}
 
 %files
 %manifest check.manifest
-%defattr(-,root,root,-)
-%doc COPYING.LESSER README
+%doc COPYING.LESSER
 %{_libdir}/libcheck.so.*
-%doc %{_infodir}/check*
-%doc /usr/share/doc/check
 
 
 %files devel
 %manifest check.manifest
-%defattr(-,root,root,-)
 %{_includedir}/check.h
 %{_libdir}/libcheck.so
 %{_libdir}/pkgconfig/check.pc

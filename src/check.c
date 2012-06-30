@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "config.h"
+#include "../lib/libcompat.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@
 #include "check_msg.h"
 
 #ifndef DEFAULT_TIMEOUT
-#define DEFAULT_TIMEOUT 3
+#define DEFAULT_TIMEOUT 4
 #endif
 
 int check_major_version = CHECK_MAJOR_VERSION;
@@ -89,7 +89,15 @@ TCase *tcase_create (const char *name)
       timeout = tmp;
     }
   }
-  
+
+  env = getenv("CK_TIMEOUT_MULTIPLIER");
+  if (env != NULL) {
+    int tmp = atoi(env);
+    if (tmp >= 0) {
+      timeout = timeout * tmp;
+    }
+  }  
+
   tc->timeout = timeout;
   tc->tflst = check_list_create();
   tc->unch_sflst = check_list_create();
@@ -124,7 +132,7 @@ void suite_add_tcase (Suite *s, TCase *tc)
   list_add_end (s->tclst, tc);
 }
 
-void _tcase_add_test (TCase *tc, TFun fn, const char *name, int signal, int start, int end)
+void _tcase_add_test (TCase *tc, TFun fn, const char *name, int _signal, int allowed_exit_value, int start, int end)
 {
   TF * tf;
   if (tc == NULL || fn == NULL || name == NULL)
@@ -133,7 +141,8 @@ void _tcase_add_test (TCase *tc, TFun fn, const char *name, int signal, int star
   tf->fn = fn;
   tf->loop_start = start;
   tf->loop_end = end;
-  tf->signal = signal; /* 0 means no signal expected */
+  tf->signal = _signal; /* 0 means no signal expected */
+  tf->allowed_exit_value = allowed_exit_value; /* 0 is default successful exit */
   tf->name = name;
   list_add_end (tc->tflst, tf);
 }
@@ -179,11 +188,19 @@ static void tcase_add_fixture (TCase *tc, SFun setup, SFun teardown,
 
 void tcase_set_timeout (TCase *tc, int timeout)
 {
-  if (timeout >= 0)
+  if (timeout >= 0) {
+    char *env = getenv("CK_TIMEOUT_MULTIPLIER");
+    if (env != NULL) {
+      int tmp = atoi(env);
+      if (tmp >= 0) {
+        timeout = timeout * tmp;
+      }
+    }
     tc->timeout = timeout;
+  }
 }
 
-void tcase_fn_start (const char *fname, const char *file, int line)
+void tcase_fn_start (const char *fname CK_ATTRIBUTE_UNUSED, const char *file, int line)
 {
   send_ctx_info (CK_CTX_TEST);
   send_loc_info (file, line);
@@ -211,8 +228,11 @@ void _fail_unless (int result, const char *file,
     vsnprintf(buf, BUFSIZ, msg, ap);
     va_end(ap);
     send_failure_info (buf);
-    if (cur_fork_status() == CK_FORK)
+    if (cur_fork_status() == CK_FORK) {
+#ifdef _POSIX_VERSION
       exit(1);
+#endif /* _POSIX_VERSION */
+    }
   }
 }
 
@@ -228,12 +248,15 @@ SRunner *srunner_create (Suite *s)
   sr->log_fname = NULL;
   sr->xml_fname = NULL;
   sr->loglst = NULL;
-  sr->fstat = CK_FORK_UNSPECIFIED;
+  sr->fstat = CK_FORK_GETENV;
   return sr;
 }
 
 void srunner_add_suite (SRunner *sr, Suite *s)
 {
+  if (s == NULL)
+    return;
+
   list_add_end(sr->slst, s);
 }
 
@@ -326,9 +349,9 @@ void tr_reset(TestResult *tr)
 
 static void tr_init (TestResult *tr)
 {
-  tr->ctx = -1;
+  tr->ctx = CK_CTX_INVALID;
   tr->line = -1;
-  tr->rtype = -1;
+  tr->rtype = CK_TEST_RESULT_INVALID;
   tr->msg = NULL;
   tr->file = NULL;
   tr->tcname = NULL;
@@ -370,7 +393,7 @@ static int _fstat = CK_FORK;
 
 void set_fork_status (enum fork_status fstat)
 {
-  if (fstat == CK_FORK || fstat == CK_NOFORK)
+  if (fstat == CK_FORK || fstat == CK_NOFORK || fstat == CK_FORK_GETENV)
     _fstat = fstat;
   else
     eprintf ("Bad status in set_fork_status", __FILE__, __LINE__);

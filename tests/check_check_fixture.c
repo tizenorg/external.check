@@ -1,3 +1,5 @@
+#include "../lib/libcompat.h"
+
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
@@ -41,7 +43,7 @@ START_TEST(test_fixture_fail_counts)
   nrun = srunner_ntests_run(fixture_sr);
   nfail = srunner_ntests_failed(fixture_sr);
 
-  fail_unless (nrun == 0 && nfail == 1,
+  fail_unless (nrun == 1 && nfail == 1,
 	       "Counts for run and fail for fixture failure not correct");
 }
 END_TEST
@@ -49,7 +51,7 @@ END_TEST
 START_TEST(test_print_counts)
 {
   char *srstat = sr_stat_str(fixture_sr);
-  const char *exp = "0%: Checks: 0, Failures: 1, Errors: 0";
+  const char *exp = "0%: Checks: 1, Failures: 1, Errors: 0";
 
   fail_unless(strcmp(srstat, exp) == 0,
 	      "SRunner stat string incorrect with setup failure");
@@ -61,7 +63,7 @@ START_TEST(test_setup_failure_msg)
 {
   TestResult **tra;
   char *trm;
-  const char *trmexp = "check_check_fixture.c:14:S:Fix Sub:unchecked_setup:0: Test failure in fixture";
+  const char *trmexp = "check_check_fixture.c:16:S:Fix Sub:unchecked_setup:0: Test failure in fixture";
 
   tra = srunner_failures(fixture_sr);
   trm = tr_str(tra[0]);
@@ -124,7 +126,7 @@ END_TEST
 
 static void setup_sub_fail (void)
 {
-  fail("Failed setup"); /* check_check_fixture.c:127 */
+  fail("Failed setup"); /* check_check_fixture.c:129 */
 }
 
 static void teardown_sub_fail (void)
@@ -172,7 +174,7 @@ START_TEST(test_ch_setup_fail)
   sr = srunner_create(s);
   srunner_run_all(sr,CK_VERBOSE);
 
-  fail_unless (srunner_ntests_run(sr) == 0,
+  fail_unless (srunner_ntests_run(sr) == 1,
 	       "Test run counts not correct for checked setup failure");
   fail_unless (srunner_ntests_failed(sr) == 1,
 	       "Failure counts not correct for checked setup failure");
@@ -180,14 +182,14 @@ START_TEST(test_ch_setup_fail)
   strstat= sr_stat_str(sr);
 
   fail_unless(strcmp(strstat,
-		     "0%: Checks: 0, Failures: 1, Errors: 0") == 0,
+		     "0%: Checks: 1, Failures: 1, Errors: 0") == 0,
 	      "SRunner stat string incorrect with checked setup failure");
 
 
   trm = tr_str(srunner_failures(sr)[0]);
-   /* Search for check_check_fixture.c:127 if this fails. */
+   /* Search for check_check_fixture.c:129 if this fails. */
   if (strstr(trm,
-	     "check_check_fixture.c:127:S:Setup Fail:test_sub_fail:0: Failed setup")
+	     "check_check_fixture.c:129:S:Setup Fail:test_sub_fail:0: Failed setup")
       == 0) {
     snprintf(errm, sizeof(errm),
 	     "Bad failed checked setup tr msg (%s)", trm);
@@ -212,7 +214,7 @@ START_TEST(test_ch_setup_fail_nofork)
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_VERBOSE);
 
-  fail_unless (srunner_ntests_run(sr) == 0,
+  fail_unless (srunner_ntests_run(sr) == 1,
 	       "Test run counts not correct for checked setup failure");
   fail_unless (srunner_ntests_failed(sr) == 1,
 	       "Failure counts not correct for checked setup failure");
@@ -235,7 +237,7 @@ START_TEST(test_ch_setup_fail_nofork_2)
   srunner_set_fork_status(sr, CK_NOFORK);
   srunner_run_all(sr, CK_VERBOSE);
 
-  fail_unless (srunner_ntests_run(sr) == 0,
+  fail_unless (srunner_ntests_run(sr) == 1,
 	       "Test run counts not correct for checked setup failure");
   fail_unless (srunner_ntests_failed(sr) == 1,
 	       "Failure counts not correct for checked setup failure");
@@ -288,20 +290,20 @@ START_TEST(test_ch_setup_sig)
 
   fail_unless (srunner_ntests_failed(sr) == 1,
 	       "Failure counts not correct for checked setup signal");
-  fail_unless (srunner_ntests_run(sr) == 0,
+  fail_unless (srunner_ntests_run(sr) == 1,
 	       "Test run counts not correct for checked setup signal");
 
   strstat= sr_stat_str(sr);
 
   fail_unless(strcmp(strstat,
-		     "0%: Checks: 0, Failures: 0, Errors: 1") == 0,
+		     "0%: Checks: 1, Failures: 0, Errors: 1") == 0,
 	      "SRunner stat string incorrect with checked setup signal");
 
 
   trm = tr_str(srunner_failures(sr)[0]);
 
   if (strstr(trm,
-	     "check_check_fixture.c:137:S:Setup Sig:test_sub_fail:0: "
+	     "check_check_fixture.c:139:S:Setup Sig:test_sub_fail:0: "
 	     "(after this point) Received signal 8")
       == 0) {
     snprintf(errm, sizeof(errm),
@@ -384,7 +386,7 @@ START_TEST(test_ch_teardown_fail)
   trm = tr_str(srunner_failures(sr)[0]);
 
   if (strstr(trm,
-	     "check_check_fixture.c:132:S:Teardown Fail:test_sub_pass:0: Failed teardown")
+	     "check_check_fixture.c:134:S:Teardown Fail:test_sub_pass:0: Failed teardown")
       == 0) {
     snprintf(errm, sizeof(errm),
 	     "Bad failed checked teardown tr msg (%s)", trm);
@@ -426,7 +428,7 @@ START_TEST(test_ch_teardown_sig)
   trm = tr_str(srunner_failures(sr)[0]);
 
   if (strstr(trm,
-	     "check_check_fixture.c:143:S:Teardown Sig:test_sub_pass:0: "
+	     "check_check_fixture.c:145:S:Teardown Sig:test_sub_pass:0: "
 	     "(after this point) Received signal 8")
       == 0) {
     snprintf(errm, sizeof(errm),
