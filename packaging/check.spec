@@ -1,3 +1,5 @@
+#sbs-git:slp/pkgs/c/check check 0.9.4 5c497de941ae042395d24033805c29c7851c2ce8
+
 Name:       check
 Summary:    A unit test framework for C
 Version: 0.9.4
