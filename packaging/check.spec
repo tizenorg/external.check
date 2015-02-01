@@ -12,6 +12,7 @@ Requires(post):  /sbin/ldconfig
 Requires(postun):  /sbin/ldconfig
 BuildRequires: texinfo
 
+
 %description
 Check is a unit test framework for C. It features a simple interface for 
 defining unit tests, putting little in the way of the developer. Tests 
