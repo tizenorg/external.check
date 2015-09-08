@@ -33,7 +33,7 @@ Libraries and headers for developing programs with check
 
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q
 
 %build
 
@@ -42,11 +42,15 @@ Libraries and headers for developing programs with check
 
 make %{?jobs:-j%jobs}
 
+
 %install
 rm -rf %{buildroot}
 %make_install
 
 rm -rf $RPM_BUILD_ROOT%{_infodir}/dir
+
+mkdir -p %{buildroot}/usr/share/license
+cp COPYING.LESSER %{buildroot}/usr/share/license/%{name}
 
 %clean
 rm -rf %{buildroot}
@@ -65,6 +69,7 @@ rm -rf %{buildroot}
 %{_libdir}/libcheck.so.*
 %doc %{_infodir}/check*
 %doc /usr/share/doc/check
+/usr/share/license/%{name}
 
 
 %files devel
@@ -73,4 +78,3 @@ rm -rf %{buildroot}
 %{_libdir}/libcheck.so
 %{_libdir}/pkgconfig/check.pc
 %{_datadir}/aclocal/check.m4
-
