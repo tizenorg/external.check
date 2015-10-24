@@ -18,10 +18,9 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "config.h"
+#include "../lib/libcompat.h"
 
 #include <sys/types.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -54,8 +53,8 @@
  * reading and writing.
  */
 
-FILE *send_file1;
-FILE *send_file2;
+static FILE *send_file1;
+static FILE *send_file2;
 
 static FILE * get_pipe(void);
 static void setup_pipe (void);
@@ -111,7 +110,7 @@ TestResult *receive_test_result (int waserror)
 
   fp = get_pipe();
   if (fp == NULL)
-    eprintf ("Couldn't find pipe",__FILE__, __LINE__);
+    eprintf ("Error in call to get_pipe",__FILE__, __LINE__ - 2);
   rewind(fp);
   rmsg = punpack (fileno(fp));
   teardown_pipe();

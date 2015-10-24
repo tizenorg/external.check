@@ -18,15 +18,11 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "config.h"
+#include "../lib/libcompat.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -37,6 +33,13 @@
 #include "check_list.h"
 #include "check_impl.h"
 #include "check_pack.h"
+
+#ifdef HAVE_PTHREAD
+pthread_mutex_t lock_mutex = PTHREAD_MUTEX_INITIALIZER;
+#else
+#define pthread_mutex_lock(arg)
+#define pthread_mutex_unlock(arg)
+#endif
 
 /* typedef an unsigned int that has at least 4 bytes */
 typedef uint32_t ck_uint32;
@@ -247,8 +250,12 @@ static void upack_fail (char **buf, FailMsg *fmsg)
 static void check_type (int type, const char *file, int line)
 {
   if (type < 0 || type >= CK_MSG_LAST)
-    eprintf ("Bad message type arg", file, line);
+    eprintf ("Bad message type arg %d", file, line, type);
 }
+
+#ifdef HAVE_PTHREAD
+pthread_mutex_t mutex_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 void ppack (int fdes, enum ck_msg_type type, CheckMsg *msg)
 {
@@ -257,9 +264,11 @@ void ppack (int fdes, enum ck_msg_type type, CheckMsg *msg)
   ssize_t r;
 
   n = pack (type, &buf, msg);
+  pthread_mutex_lock(&mutex_lock);
   r = write (fdes, buf, n);
+  pthread_mutex_unlock(&mutex_lock);
   if (r == -1)
-    eprintf ("Error in ppack:",__FILE__,__LINE__);
+    eprintf ("Error in call to write:", __FILE__, __LINE__ - 2);
 
   free (buf);
 }
@@ -279,7 +288,7 @@ static int read_buf (int fdes, char **buf)
     if (n == 0)
       break;
     if (n == -1)
-      eprintf ("Error in read_buf:", __FILE__, __LINE__);
+      eprintf ("Error in call to read:", __FILE__, __LINE__ - 4);
 
     nread += n;
     size *= grow;
@@ -299,14 +308,14 @@ static int get_result (char *buf, RcvMsg *rmsg)
 
   n = upack (buf, &msg, &type);
   if (n == -1)
-    eprintf ("Error in upack", __FILE__, __LINE__);
+    eprintf ("Error in call to upack", __FILE__, __LINE__ - 2);
   
   if (type == CK_MSG_CTX) {
     CtxMsg *cmsg = (CtxMsg *) &msg;
     rcvmsg_update_ctx (rmsg, cmsg->ctx);
   } else if (type == CK_MSG_LOC) {
     LocMsg *lmsg = (LocMsg *) &msg;
-    if (rmsg->failctx == -1)
+    if (rmsg->failctx == CK_CTX_INVALID)
     {
       rcvmsg_update_loc (rmsg, lmsg->file, lmsg->line);
     }
@@ -347,8 +356,8 @@ static RcvMsg *rcvmsg_create (void)
   RcvMsg *rmsg;
 
   rmsg = emalloc (sizeof (RcvMsg));
-  rmsg->lastctx = -1;
-  rmsg->failctx = -1;
+  rmsg->lastctx = CK_CTX_INVALID;
+  rmsg->failctx = CK_CTX_INVALID;
   rmsg->msg = NULL;
   reset_rcv_test (rmsg);
   reset_rcv_fixture (rmsg);
@@ -365,7 +374,7 @@ void rcvmsg_free (RcvMsg *rmsg)
 
 static void rcvmsg_update_ctx (RcvMsg *rmsg, enum ck_result_ctx ctx)
 {
-  if (rmsg->lastctx != -1)
+  if (rmsg->lastctx != CK_CTX_INVALID)
   {
     free(rmsg->fixture_file);
     reset_rcv_fixture (rmsg);
@@ -408,7 +417,7 @@ RcvMsg *punpack (int fdes)
   }
 
   free (obuf);
-  if (rmsg->lastctx == -1) {
+  if (rmsg->lastctx == CK_CTX_INVALID) {
     free (rmsg);
     rmsg = NULL;
   }

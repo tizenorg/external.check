@@ -1,7 +1,7 @@
 About Check
 -----------
 
-Check is a unit test framework for C. It features a simple interface
+Check is a unit testing framework for C. It features a simple interface
 for defining unit tests, putting little in the way of the
 developer. Tests are run in a separate address space, so Check can
 catch both assertion failures and code errors that cause segmentation
@@ -20,6 +20,11 @@ Check has the following dependencies:
   autoconf-2.59
   libtool-1.5.22
   pkg-config-0.20
+  texinfo-4.7 (for documentation)
+  tetex-bin (or any texinfo-compatible TeX installation, for documentation)
+  POSIX sed
+
+The versions specified may be higher than those actually needed.
 
 First, do
 
